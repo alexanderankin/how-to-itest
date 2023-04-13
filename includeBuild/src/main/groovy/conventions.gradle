@@ -4,7 +4,42 @@ plugins {
     id 'idea'
 }
 
+java {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+    withJavadocJar()
+}
+
 repositories.mavenCentral()
+
+
+// https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests
+sourceSets {
+    itest {
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
+// tell intellij about the sourceSet
+idea {
+    module {
+        sourceDirs -= file('src/itest/java')
+        testSources.from file('src/itest/java')
+    }
+}
+
+configurations {
+    // lombok
+    testCompileOnly.extendsFrom(compileOnly)
+    testAnnotationProcessor.extendsFrom(annotationProcessor)
+    itestCompileOnly.extendsFrom(testCompileOnly)
+    itestAnnotationProcessor.extendsFrom(testAnnotationProcessor)
+
+    // itests
+    itestImplementation.extendsFrom testImplementation
+    itestRuntimeOnly.extendsFrom testRuntimeOnly
+}
 
 dependencies {
     implementation platform('org.springframework.boot:spring-boot-dependencies:2.7.2')
@@ -19,3 +54,38 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.security:spring-security-test'
 }
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    constraints { implementation('org.slf4j:slf4j-api:1.7.36') }
+
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'org.mockito:mockito-core:3+'
+    testImplementation 'ch.qos.logback:logback-classic:1.2.10'
+    testImplementation 'com.fasterxml.uuid:java-uuid-generator:4.0.1'
+}
+
+// from same page as itest sourceSets block
+def integrationTest = tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.itest.output.classesDirs
+    classpath = sourceSets.itest.runtimeClasspath
+    shouldRunAfter test
+}
+
+// pick up integrationTest coverage file in report
+jacocoTestReport {
+    getExecutionData().from(fileTree(project.buildDir).include("jacoco/*.exec"))
+}
+
+check.dependsOn integrationTest
+
+// use junit for all tests
+tasks.withType(Test).configureEach { t -> t.useJUnitPlatform() }

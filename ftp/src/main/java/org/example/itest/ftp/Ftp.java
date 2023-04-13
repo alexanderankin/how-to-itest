@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 public class Ftp {
     @Accessors(chain = true)
     @Data
@@ -46,7 +50,18 @@ public class Ftp {
 
         @SneakyThrows
         String contents(String file) {
-            return new String(client.retrieveFileStream(file).readAllBytes());
+            try (InputStream inputStream = client.retrieveFileStream(file)) {
+                return new String(inputStream.readAllBytes());
+            }
+        }
+
+        @SneakyThrows
+        void write(String file, String contents) {
+            InputStream stream = new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8));
+            client.enterLocalActiveMode();
+            if (!client.storeFile(file, stream)) {
+                throw new IllegalStateException("upload of " + file + " was not successful");
+            }
         }
     }
 
