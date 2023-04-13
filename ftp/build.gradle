@@ -1,0 +1,8 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation 'commons-net:commons-net:3.9.0'
+}
