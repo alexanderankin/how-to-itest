@@ -1,0 +1,6 @@
+example:
+  ftp:
+    host: localhost
+    username: toor
+    password: root
+    folder: /home/toor/local-folder

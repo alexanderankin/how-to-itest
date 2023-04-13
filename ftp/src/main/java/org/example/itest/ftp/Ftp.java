@@ -16,17 +16,36 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Ftp {
+
+    @SneakyThrows
+    public static void main(String[] args) {
+        Properties properties = new Properties()
+                .setHost("localhost")
+                .setPort(21);
+
+        FTPClient ftpClient = new FTPClient();
+        ftpClient.connect(new InetSocketAddress(properties.getHost(), properties.port).getAddress());
+        ftpClient.login("toor", "root");
+        ftpClient.changeWorkingDirectory(properties.folder);
+
+        System.out.println(Arrays.asList(ftpClient.listDirectories()));
+    }
+
     @Accessors(chain = true)
     @Data
     @Component
     @ConfigurationProperties("example.ftp")
     public static class Properties {
         String host;
-        int port;
+        int port = 21;
         String folder;
+        String username;
+        String password;
     }
 
     @RequiredArgsConstructor
@@ -37,7 +56,8 @@ public class Ftp {
         @Bean
         FTPClient ftpClient() {
             FTPClient ftpClient = new FTPClient();
-            ftpClient.connect(properties.host);
+            ftpClient.connect(new InetSocketAddress(properties.host, properties.port).getAddress());
+            ftpClient.login(properties.username, properties.password);
             ftpClient.changeWorkingDirectory(properties.folder);
             return ftpClient;
         }

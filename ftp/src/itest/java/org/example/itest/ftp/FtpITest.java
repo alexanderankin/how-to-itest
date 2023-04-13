@@ -15,4 +15,14 @@ class FtpITest extends BaseITest {
         System.out.println("context loaded!");
     }
 
+    @Test
+    void test_readFiles() {
+        String contents = "abc def 12345";
+        String file = "some-example-file.txt";
+        ftpService.write(file, contents);
+
+        String read = ftpService.contents(file);
+        assertEquals(contents, read);
+    }
+
 }
