@@ -53,21 +53,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.security:spring-security-test'
-}
-
-dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    constraints { implementation('org.slf4j:slf4j-api:1.7.36') }
-
     testImplementation 'org.hamcrest:hamcrest:2.2'
-    testImplementation 'org.mockito:mockito-core:3+'
-    testImplementation 'ch.qos.logback:logback-classic:1.2.10'
     testImplementation 'com.fasterxml.uuid:java-uuid-generator:4.0.1'
+
+    itestImplementation platform('org.testcontainers:testcontainers-bom:1.18.0')
+    itestImplementation 'org.testcontainers:testcontainers'
 }
 
 // from same page as itest sourceSets block

@@ -6,6 +6,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("itest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@FtpClientIntegrationTest
 @AutoConfigureWebTestClient(timeout = "PT24H")
 public class BaseITest {
 }

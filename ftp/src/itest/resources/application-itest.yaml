@@ -1,3 +1,7 @@
+logging:
+  level:
+    org.example.itest: DEBUG
+
 example:
   ftp:
     host: localhost
