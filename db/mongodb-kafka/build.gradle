@@ -1,0 +1,18 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
+    implementation('org.springframework.kafka:spring-kafka')
+    annotationProcessor('org.springframework.boot:spring-boot-configuration-processor')
+
+    // SB 3 specific:
+    // itestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+
+    itestImplementation('org.springframework.boot:spring-boot-starter-webflux')
+    itestImplementation('org.testcontainers:kafka')
+    // itestImplementation('com.findinpath:testcontainers-kafka-avro:')
+    itestImplementation('org.testcontainers:mongodb')
+}

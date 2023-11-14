@@ -1,4 +1,5 @@
 rootProject.name = 'how-to-itest'
 includeBuild('includeBuild')
 include('ftp')
+include('db:mongodb-kafka')
 include('db:postgres:simple')
