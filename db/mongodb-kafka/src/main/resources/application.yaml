@@ -1,0 +1,12 @@
+spring:
+  kafka:
+    consumer:
+      # https://stackoverflow.com/a/60554542 - serialize/deserialize json values
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # https://stackoverflow.com/a/60286512 - actually deserialize json to pojos
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

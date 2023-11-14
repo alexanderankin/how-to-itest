@@ -23,7 +23,9 @@ import java.time.Duration;
 public abstract class BaseITest {
     public static final Network integrationTestNetwork = Network.newNetwork();
 
-    public static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.2.arm64"))
+    // originally was: .arm64
+    public static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:7.2.2");
+    public static KafkaContainer kafka = new KafkaContainer(KAFKA_IMAGE)
             .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false")
             .withEmbeddedZookeeper()
             .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://kafka:9092")
@@ -42,7 +44,10 @@ public abstract class BaseITest {
             .withExposedPorts(8081)
             .dependsOn(kafka); */
 
-    public static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo")
+    // was: mongo:latest
+    // public static final DockerImageName MONGO_IMAGE = DockerImageName.parse("mongo:6.0.7-jammy");
+    public static final DockerImageName MONGO_IMAGE = DockerImageName.parse("mongo:6-jammy");
+    public static MongoDBContainer mongoDBContainer = new MongoDBContainer(MONGO_IMAGE)
             .withExposedPorts(27017);
 
     static {
