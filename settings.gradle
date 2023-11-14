@@ -1,4 +1,6 @@
 rootProject.name = 'how-to-itest'
 includeBuild('includeBuild')
 include('ftp')
+include('db:postgres:reusable-annotation')
+include('db:postgres:reusable-annotation-demo')
 include('db:postgres:simple')
