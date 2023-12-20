@@ -26,6 +26,7 @@ idea {
     module {
         sourceDirs -= file('src/itest/java')
         testSources.from file('src/itest/java')
+        downloadSources = true
     }
 }
 

@@ -1,5 +1,6 @@
 rootProject.name = 'how-to-itest'
 includeBuild('includeBuild')
-include('ftp')
 include('db:postgres:multi-db')
 include('db:postgres:simple')
+include('fs:with-copy-per-test')
+include('ftp')
