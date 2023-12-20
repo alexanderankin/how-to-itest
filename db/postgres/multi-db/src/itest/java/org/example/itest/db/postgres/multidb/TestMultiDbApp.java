@@ -21,7 +21,6 @@ public class TestMultiDbApp {
 
     @TestConfiguration
     static class TestConfig {
-        @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
         @Autowired
         MultiDbApp.PostgresDbsProperties props;
 
@@ -42,6 +41,7 @@ public class TestMultiDbApp {
                     statement.execute("GRANT ALL PRIVILEGES ON DATABASE " + db + " TO " + p.getUsername());
                 }
             }
+            if (ds instanceof AutoCloseable a) a.close();
 
             return p;
         }
