@@ -12,12 +12,14 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.NullValueCheckStrategy;
 import org.mapstruct.ValueMapping;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,17 +63,23 @@ class GrpcServiceApp {
         PhoneType toProto(Models.Person.PhoneType phoneType);
     }
 
+    @Slf4j
+    @RequiredArgsConstructor
     @Configuration
     static class GrpcConfig {
+        final ServerProperties serverProperties;
+
         @SneakyThrows
         @Bean
         Server grpcServer(List<BindableService> bindableServices) {
             ServerCredentials creds = InsecureServerCredentials.create();
 
-            ServerBuilder<?> serverBuilder = Grpc.newServerBuilderForPort(8081, creds);
+            int port = serverProperties.getPort() != null ? serverProperties.getPort() + 1 : 0;
+            ServerBuilder<?> serverBuilder = Grpc.newServerBuilderForPort(port, creds);
             bindableServices.forEach(serverBuilder::addService);
             Server server = serverBuilder.build();
             server.start();
+            log.info("Netty (for gRPC) started on port {}", server.getPort());
             return server;
         }
     }

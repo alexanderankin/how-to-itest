@@ -4,6 +4,7 @@ import com.example.tutorial.protos.AddressBookProtos;
 import com.example.tutorial.protos.AddressBookServiceGrpc;
 import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Server;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,10 +41,13 @@ class GrpcServiceAppTest {
 
 @TestConfiguration
 class TestConfig {
+    @Autowired
+    Server server;
+
     @Bean
     AddressBookServiceGrpc.AddressBookServiceBlockingStub addressBookServiceStub() {
         return com.example.tutorial.protos.AddressBookServiceGrpc.newBlockingStub(
-                ManagedChannelBuilder.forAddress("localhost", 8081)
+                ManagedChannelBuilder.forAddress("localhost", server.getPort())
                         .usePlaintext()
                         .build()
         );
