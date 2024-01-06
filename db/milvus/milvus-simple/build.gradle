@@ -5,6 +5,7 @@ plugins {
 dependencies {
     // https://milvus.io/docs/install-java.md#Install-Milvus-Java-SDK-1
     implementation 'io.milvus:milvus-sdk-java:2.3.3'
+    implementation 'io.grpc:grpc-netty:1.60.1' // issues in 1.46.0, which was default
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     itestImplementation 'org.springframework.boot:spring-boot-starter-test'

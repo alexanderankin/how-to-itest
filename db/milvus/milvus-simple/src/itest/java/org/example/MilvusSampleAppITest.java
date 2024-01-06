@@ -2,6 +2,7 @@ package org.example;
 
 import com.github.dockerjava.api.model.HostConfig;
 import io.milvus.client.MilvusServiceClient;
+import io.milvus.param.collection.CreateDatabaseParam;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,8 +21,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.http.HttpStatus.OK;
 
 @SuppressWarnings("resource")
@@ -35,6 +35,8 @@ class MilvusSampleAppITest {
                     .withNetwork(NETWORK)
                     .withEnv("ALLOW_NONE_AUTHENTICATION", "yes")
                     .withExposedPorts(2379)
+                    .waitingFor(Wait.forHttp("/metrics").forPort(2379))
+                    .withLogConsumer(o -> System.out.print("ETCD: " + o.getUtf8String()))
                     .withNetworkAliases("etcd");
     static GenericContainer<?> MINIO_CONTAINER =
             new GenericContainer<>("minio/minio:RELEASE.2023-03-20T20-16-18Z")
@@ -43,6 +45,8 @@ class MilvusSampleAppITest {
                     .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
                     .withNetworkAliases("minio")
                     .withExposedPorts(9000, 9001)
+                    .waitingFor(Wait.forHttp("/minio/health/live").forPort(9000))
+                    .withLogConsumer(o -> System.out.print("MINIO: " + o.getUtf8String()))
                     .withCommand("minio server /minio_data --console-address :9001");
     static GenericContainer<?> MILVUS_CONTAINER =
             new GenericContainer<>("milvusdb/milvus:v2.3.3")
@@ -56,6 +60,7 @@ class MilvusSampleAppITest {
                     .withEnv("MINIO_SECRET_ACCESS_KEY", "minioadmin")
                     .waitingFor(Wait.forHttp("/healthz").forPort(9091))
                     .withCommand("milvus", "run", "standalone")
+                    .withLogConsumer(o -> System.out.print("MILVUS: " + o.getUtf8String()))
                     .withCreateContainerCmdModifier(c ->
                             c.withHostConfig(Objects.requireNonNullElseGet(c.getHostConfig(), HostConfig::new)
                                     .withSecurityOpts(List.of("seccomp:unconfined"))));
@@ -77,7 +82,16 @@ class MilvusSampleAppITest {
     @Test
     void test_client() {
         // haven't figured this out yet
-        assertThat(milvusClient.checkHealth().getException(), is(notNullValue()));
+        assertThat(milvusClient.checkHealth().getException(), is(nullValue()));
+
+        assertThat(milvusClient.createDatabase(CreateDatabaseParam.newBuilder()
+                        .withDatabaseName("testing_db")
+                        .build()).getStatus(),
+                is(0));
+        assertThat(milvusClient.listDatabases()
+                        .getData()
+                        .getDbNamesList(),
+                hasItem("testing_db"));
     }
 
     @Test
