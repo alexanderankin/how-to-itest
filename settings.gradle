@@ -1,8 +1,9 @@
 rootProject.name = 'how-to-itest'
 includeBuild('includeBuild')
+include('db:cassandra:cassandra-simple')
 include('db:milvus:milvus-simple')
 include('db:postgres:multi-db')
 include('db:postgres:simple')
 include('fs:with-copy-per-test')
 include('ftp')
-include('grpc:grpc-simple-service')
+//include('grpc:grpc-simple-service')

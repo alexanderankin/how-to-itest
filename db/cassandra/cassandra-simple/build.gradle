@@ -1,0 +1,11 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-cassandra'
+    itestImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+    itestImplementation 'org.testcontainers:cassandra'
+    itestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+}
