@@ -1,0 +1,6 @@
+# terraform
+.terraform*
+!.terraform.lock.hcl
+*.tfstate*
+plan
+.test
