@@ -213,7 +213,7 @@ resource "aws_iam_role" "jump_host_role" {
   })
 }
 
-resource "aws_iam_policy" "dynamodb_prefix" {
+resource "aws_iam_policy" "jump_host_ddb_prefix_all" {
   name = "${var.prefix}-dynamodb-full-access-policy"
   tags = {
     Name = "${var.prefix}-dynamodb-full-access-policy"
@@ -234,7 +234,7 @@ resource "aws_iam_role_policy_attachment" "jump_host_role_policies" {
   for_each = {
     # AmazonDynamoDBFullAccess = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
     # AmazonDynamoDBReadOnlyAccess = "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
-    "${var.prefix}-dynamodb-full-access-policy" = aws_iam_policy.dynamodb_prefix.arn
+    "${var.prefix}-dynamodb-full-access-policy" = aws_iam_policy.jump_host_ddb_prefix_all.arn
   }
 
   role       = aws_iam_role.jump_host_role.name
@@ -242,3 +242,260 @@ resource "aws_iam_role_policy_attachment" "jump_host_role_policies" {
 }
 
 // make private subnet, asg
+resource "aws_subnet" "application" {
+  count = 2
+
+  tags = { Name = "${var.prefix}-application-${count.index}" }
+
+  vpc_id                          = aws_vpc.vpc.id
+  map_public_ip_on_launch         = false
+  assign_ipv6_address_on_creation = true
+  cidr_block                      = cidrsubnet(aws_vpc.vpc.cidr_block, 4, 4 + count.index)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 4 + count.index)
+  availability_zone               = "us-east-1${["a", "b", "c", "d"][count.index % 4]}"
+}
+
+resource "aws_route_table" "nat" {
+  vpc_id = aws_vpc.vpc.id
+  route {
+    cidr_block           = "0.0.0.0/0"
+    network_interface_id = aws_instance.jump_host.primary_network_interface_id
+  }
+  route {
+    ipv6_cidr_block      = "::/0"
+    network_interface_id = aws_instance.jump_host.primary_network_interface_id
+  }
+}
+
+resource "aws_route_table_association" "application" {
+  for_each       = aws_subnet.application
+  route_table_id = aws_route_table.nat.id # nat
+  subnet_id      = each.value.id
+}
+
+resource "aws_security_group" "application" {
+  vpc_id = aws_vpc.vpc.id
+  name   = "${var.prefix}-application"
+  tags   = { Name = "${var.prefix}-application" }
+
+  egress {
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.vpc.cidr_block]
+    ipv6_cidr_blocks = [aws_vpc.vpc.ipv6_cidr_block]
+  }
+
+  ingress {
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.vpc.cidr_block]
+    ipv6_cidr_blocks = [aws_vpc.vpc.ipv6_cidr_block]
+  }
+}
+
+resource "aws_autoscaling_group" "asg" {
+  name                      = "${var.prefix}-application"
+  max_size                  = 1
+  min_size                  = 1
+  health_check_grace_period = 30
+  health_check_type         = "ELB"
+  desired_capacity          = 1
+  desired_capacity_type     = "units"
+  wait_for_capacity_timeout = "0"
+  max_instance_lifetime     = 86400 * 3 # 3 days (min 1 day)
+
+  launch_template {
+    id      = aws_launch_template.asg.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.prefix}-application"
+    propagate_at_launch = false
+  }
+
+  tag {
+    key                 = "AsgName"
+    value               = "${var.prefix}-application"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_launch_template" "asg" {
+  name = "${var.prefix}-application"
+  tags = { Name = "${var.prefix}-application" }
+  instance_type = "t4g.nano"
+  image_id = data.aws_ami.ubuntu.id
+  vpc_security_group_ids = [aws_security_group.application.id]
+  user_data = <<-EOF
+    #!/bin/bash
+    f=/home/ubuntu/.ssh/authorized_keys; touch $f; chmod 600 $f;
+    echo '${filebase64("~/.ssh/id_rsa.pub")}' | base64 -d >> $f
+    curl -fSsL github.com/alexanderankin.keys >> $f
+    apt update
+    apt install docker.io -y
+  EOF
+
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.application_profile.arn
+  }
+}
+
+resource "aws_iam_instance_profile" "application_profile" {
+  name = "${var.prefix}-jump-host-profile"
+  tags = { Name = "${var.prefix}-jump-host-profile" }
+  role = aws_iam_role.application_role.name
+}
+
+resource "aws_iam_role" "application_role" {
+  name = "${var.prefix}-jump-host-ec2-assumable-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRole"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "application_ddb_prefix_all" {
+  name = "${var.prefix}-dynamodb-full-access-policy"
+  tags = {
+    Name = "${var.prefix}-dynamodb-full-access-policy"
+  }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "dynamodb:*"
+        Resource = "arn:aws:dynamodb:*:*:table/${var.prefix}-*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "jump_host_role_policies" {
+  for_each = {
+    # AmazonDynamoDBFullAccess = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+    # AmazonDynamoDBReadOnlyAccess = "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
+    "${var.prefix}-dynamodb-full-access-policy" = aws_iam_policy.application_ddb_prefix_all.arn
+  }
+
+  role       = aws_iam_role.application_role.name
+  policy_arn = each.value
+}
+
+// elb
+resource "aws_subnet" "elb_subnet" {
+  count = 2
+
+  tags = { Name = "${var.prefix}-elb-subnet-${count.index}" }
+
+  vpc_id                          = aws_vpc.vpc.id
+  map_public_ip_on_launch         = false
+  assign_ipv6_address_on_creation = true
+  cidr_block                      = cidrsubnet(aws_vpc.vpc.cidr_block, 4, 8 + count.index)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.vpc.ipv6_cidr_block, 8, 8 + count.index)
+  availability_zone               = "us-east-1${["a", "b", "c", "d"][count.index % 4]}"
+}
+
+resource "aws_route_table_association" "elb_subnet" {
+  for_each       = aws_subnet.application
+  route_table_id = aws_route_table.public.id # public
+  subnet_id      = each.value.id
+}
+
+resource "aws_security_group" "elb" {
+  vpc_id = aws_vpc.vpc.id
+  name   = "${var.prefix}-elb"
+  tags   = { Name = "${var.prefix}-elb" }
+
+  #   egress {
+  #     from_port         = 443
+  #     to_port           = 443
+  #     protocol          = "tcp"
+  #     cidr_blocks       = [aws_vpc.vpc.cidr_block]
+  #     ipv6_cidr_blocks  = [aws_vpc.vpc.ipv6_cidr_block]
+  #   }
+
+  ingress {
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+resource "aws_lb" "public" {
+  internal           = false #tfsec:ignore:AWS005
+  load_balancer_type = "application"
+  name               = "${var.prefix}-lb"
+  security_groups    = [aws_security_group.elb.id]
+  subnets            = [for each_s in aws_subnet.elb_subnet : each_s.id]
+  tags               = { Name = "${var.prefix}-lb" }
+}
+
+resource "aws_lb_target_group" "lb" {
+  name = "${var.prefix}-tg"
+  tags = { Name = "${var.prefix}-tg" }
+
+  port        = 443
+  protocol    = "HTTPS"
+  target_type = "instance"
+  vpc_id      = aws_vpc.vpc.id
+  health_check {
+    healthy_threshold   = 2 # valid: 2-10
+    interval            = 5 # valid: 5-300
+    timeout             = 2 # valid: 2-120 # must be shorter than interval
+    path                = "/"
+    port                = 443
+    protocol            = "HTTPS"
+    unhealthy_threshold = 2 # valid: 2-10
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.public.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type = "redirect"
+    redirect {
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.public.arn
+  port              = 443
+  protocol          = "HTTPS"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.lb.arn
+  }
+}
+
+resource "aws_autoscaling_attachment" "lb" {
+  autoscaling_group_name = aws_autoscaling_group.asg.name
+  lb_target_group_arn    = aws_lb.public.arn
+}
