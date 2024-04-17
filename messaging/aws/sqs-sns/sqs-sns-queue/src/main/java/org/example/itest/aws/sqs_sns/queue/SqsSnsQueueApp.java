@@ -1,5 +1,10 @@
 package org.example.itest.aws.sqs_sns.queue;
 
+import com.amazonaws.services.lambda.runtime.events.SNSEvent.SNS;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import io.awspring.cloud.autoconfigure.core.AwsProperties;
 import io.awspring.cloud.sns.core.SnsTemplate;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
@@ -11,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -27,20 +33,12 @@ import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
 @SpringBootApplication
 class SqsSnsQueueApp {
-    private final SnsTemplate snsTemplate;
-
-    public SqsSnsQueueApp(SnsTemplate snsTemplate) {
-        this.snsTemplate = snsTemplate;
-    }
-
     public static void main(String[] args) {
         SpringApplication.run(SqsSnsQueueApp.class, args);
     }
@@ -231,6 +229,14 @@ class SqsSnsQueueApp {
         }
     }
 
+    @Configuration
+    static class AwsLambdaLibsPleaseStopUsingJodaTime {
+        @Autowired
+        public void setObjectMapper(ObjectMapper objectMapper) {
+            objectMapper.registerModule(new JodaModule());
+        }
+    }
+
     @RestController
     static class QueueController {
         @Autowired
@@ -240,10 +246,28 @@ class SqsSnsQueueApp {
         @Autowired
         QueueAppProperties properties;
 
+        /**
+         * <p>
+         * Case-insensitive mapper:
+         * <p>
+         * we use this to parse the sns message.
+         * <p>
+         * we are not writing our own class because it's not our data.
+         * <p>
+         * the class that we do have has the wrong case
+         * because it's a privilege to even have it.
+         */
+        ObjectMapper ciMapper = JsonMapper.builder().findAndAddModules().configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
+
         @GetMapping("/messages")
-        List<String> messages() {
-            Collection<Message<String>> messages = sqsTemplate.receiveMany(properties.getQueue(), String.class);
-            return messages.stream().map(Message::getPayload).toList();
+        List<SNS> messages() {
+            var messages = sqsTemplate.receiveMany(properties.getQueue(), String.class);
+            return messages.stream().map(Message::getPayload).map(this::parse).toList();
+        }
+
+        @SneakyThrows
+        private SNS parse(String value) {
+            return ciMapper.readValue(value, SNS.class);
         }
 
         @PostMapping("/messages")

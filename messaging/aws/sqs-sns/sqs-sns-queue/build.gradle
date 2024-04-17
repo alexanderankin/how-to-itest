@@ -10,6 +10,8 @@ dependencies {
     implementation('io.awspring.cloud:spring-cloud-aws-starter-sns')
     implementation 'software.amazon.awssdk:sts'
     implementation 'software.amazon.awssdk:iam-policy-builder'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.5'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-joda'
     itestImplementation 'org.springframework.boot:spring-boot-starter-webflux'
     itestImplementation 'org.testcontainers:localstack'
 }
