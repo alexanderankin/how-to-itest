@@ -1,0 +1,6 @@
+spring:
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      endpoint:

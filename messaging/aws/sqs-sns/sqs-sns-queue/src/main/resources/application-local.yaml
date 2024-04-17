@@ -1,0 +1,11 @@
+spring:
+  cloud:
+    aws:
+      endpoint: http://localhost:4566
+      region:
+        static: us-east-1
+      credentials:
+        # awslocal iam create-user --user-name test
+        # awslocal iam create-access-key --user-name test
+        access-key: LKIAQAAAAAAAOVZLBWOP # starts with L - localstack key, not real key
+        secret-key: fuFSwUB5liZ01gxCB/YxQfJTKkEdbRIZPSAiLYUi

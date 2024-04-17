@@ -1,0 +1,11 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    implementation platform('io.awspring.cloud:spring-cloud-aws-dependencies:3.1.1')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation('io.awspring.cloud:spring-cloud-aws-starter-sqs')
+    itestImplementation 'org.testcontainers:localstack'
+}

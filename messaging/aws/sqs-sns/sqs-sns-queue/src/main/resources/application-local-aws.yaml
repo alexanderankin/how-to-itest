@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    aws:
+      region:
+        profile:
+          name: personal
+      credentials:
+        profile:
+          name: personal
