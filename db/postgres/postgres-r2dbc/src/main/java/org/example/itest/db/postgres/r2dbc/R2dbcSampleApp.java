@@ -1,6 +1,6 @@
 package org.example.itest.db.postgres.r2dbc;
 
-import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.ConnectionFactory;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
@@ -8,13 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-
-import static io.r2dbc.spi.ConnectionFactoryOptions.*;
+import org.springframework.r2dbc.core.DatabaseClient;
 
 @SpringBootApplication
 public class R2dbcSampleApp {
@@ -30,7 +28,7 @@ public class R2dbcSampleApp {
         // seems like a turing tarpit tbh
         @SneakyThrows
         @Autowired
-        void initTables(R2dbcProperties r2dbcProperties) {
+        void initTables(ConnectionFactory connectionFactory) {
             String init = """
                     create table if not exists example
                     (
@@ -40,17 +38,13 @@ public class R2dbcSampleApp {
                     )
                     """;
 
-            var options = ConnectionFactoryOptions.parse(r2dbcProperties.getUrl());
-            var pb = new ProcessBuilder()
-                    .command("psql",
-                            "-h", options.getRequiredValue(HOST).toString(),
-                            "-p", options.getRequiredValue(PORT).toString(),
-                            "-d", options.getRequiredValue(DATABASE).toString(),
-                            "-U", r2dbcProperties.getUsername(),
-                            "-c", init)
-                    .inheritIO();
-            pb.environment().put("PGPASSWORD", r2dbcProperties.getPassword());
-            pb.start().waitFor();
+            DatabaseClient.create(connectionFactory)
+                    .sql(init)
+                    .fetch()
+                    .rowsUpdated()
+                    .doOnNext(ignored -> log.info("initTables: success"))
+                    // .doOnError(error -> log.error("initTables: Error", error))
+                    .block();
         }
     }
 
