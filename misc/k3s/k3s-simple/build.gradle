@@ -1,0 +1,8 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+    itestImplementation 'org.testcontainers:k3s'
+}
