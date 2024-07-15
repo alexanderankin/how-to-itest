@@ -1,0 +1,10 @@
+plugins {
+    id 'conventions'
+}
+
+dependencies {
+    itestImplementation('org.testcontainers:mockserver')
+    itestImplementation('ch.qos.logback:logback-classic')
+    itestImplementation('org.mock-server:mockserver-client-java-no-dependencies:5.14.0')
+    itestImplementation('org.springframework.boot:spring-boot-starter-webflux')
+}
