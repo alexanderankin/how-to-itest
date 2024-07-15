@@ -25,7 +25,9 @@ public class SimpleMockServerITest {
             .withTag("mockserver-5.14.0");
 
 
-    static MockServerContainer mockServer = new MockServerContainer(MOCKSERVER_IMAGE);
+    static MockServerContainer mockServer = new MockServerContainer(MOCKSERVER_IMAGE) {{
+        addFixedExposedPort(PORT, PORT);
+    }};
 
     ObjectMapper objectMapper;
     MockServerClient localhost;
