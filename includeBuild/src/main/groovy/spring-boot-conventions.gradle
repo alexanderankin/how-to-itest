@@ -1,0 +1,4 @@
+plugins {
+    id 'conventions'
+    id 'org.springframework.boot'
+}

@@ -1,15 +1,17 @@
 plugins {
     id 'conventions'
-    id 'spring-boot-conventions'
+    // copied verbatim from `grpc-simple-service` for expediency
     id 'com.google.protobuf' version '0.9.4'
 }
 
+//<editor-fold desc="copied verbatim from `grpc-simple-service` for expediency">
 def grpcVersion = '1.65.1'
 def protobufVersion = '3.25.1'
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // https://mvnrepository.com/artifact/no.entur.mapstruct.spi/protobuf-spi-impl
     annotationProcessor 'no.entur.mapstruct.spi:protobuf-spi-impl:1.44'
@@ -65,11 +67,19 @@ protobuf {
         }
     }
 }
+//</editor-fold>
 
-// added to "export" jar to `grpc-inside-tc`
-configurations.create('ga') {
-    canBeConsumed = true
-    canBeResolved = false
+
+configurations.create('ga').with {
+    canBeConsumed = false
+    canBeResolved = true
 }
 
-artifacts.add('ga', bootJar)
+dependencies {
+    ga project(path: ':grpc:grpc-simple-service', configuration: 'ga')
+}
+
+tasks.named('integrationTest', Test) {
+    inputs.files(configurations.ga)
+    systemProperty('grpcAppJar', configurations.la.singleFile.path)
+}
