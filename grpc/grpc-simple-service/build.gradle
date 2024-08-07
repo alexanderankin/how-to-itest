@@ -3,7 +3,7 @@ plugins {
     id 'com.google.protobuf' version '0.9.4'
 }
 
-def grpcVersion = '1.60.1'
+def grpcVersion = '1.65.1'
 def protobufVersion = '3.25.1'
 
 dependencies {
@@ -24,6 +24,8 @@ dependencies {
     implementation platform('io.grpc:grpc-bom:' + grpcVersion)
     // not needed since grpc-bom specifies protobufVersion it uses internally
     // implementation platform('com.google.protobuf:protobuf-bom:' + protobufVersion)
+    implementation 'io.grpc:grpc-protobuf'
+    implementation 'com.google.protobuf:protobuf-java:' + protobufVersion // com.google.protobuf.Empty
 
     implementation 'io.grpc:grpc-services'
     // not needed as grpc-services depends on it
@@ -56,7 +58,7 @@ protobuf {
             it.plugins {
                 grpc {
                     // suggested option in PR addressing https://github.com/grpc/grpc-java/issues/9179
-                    option('jakarta')
+                    option('@generated=omit')
                 }
             }
         }

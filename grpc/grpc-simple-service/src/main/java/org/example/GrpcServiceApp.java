@@ -74,7 +74,10 @@ class GrpcServiceApp {
         Server grpcServer(List<BindableService> bindableServices) {
             ServerCredentials creds = InsecureServerCredentials.create();
 
-            int port = serverProperties.getPort() != null ? serverProperties.getPort() + 1 : 0;
+            var spp = serverProperties.getPort();
+            int port = (spp != null && spp != 0) ? spp + 1 : 0;
+            log.info("Netty (for gRPC) starting on port {}", port);
+
             ServerBuilder<?> serverBuilder = Grpc.newServerBuilderForPort(port, creds);
             bindableServices.forEach(serverBuilder::addService);
             Server server = serverBuilder.build();
