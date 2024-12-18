@@ -1,0 +1,23 @@
+syntax = "proto2";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+package example;
+
+option java_multiple_files = false;
+option java_package = "org.example.proto.example";
+option java_outer_classname = "ExampleProtos";
+
+message Example {
+  optional string id = 1;
+  required string name = 2;
+  optional string description = 3;
+}
+
+service ExampleService {
+  rpc CreateExample(Example) returns (google.protobuf.StringValue);
+  rpc GetExamples(google.protobuf.Empty) returns (stream Example);
+  rpc GetExample(google.protobuf.StringValue) returns (Example);
+  rpc UpdateExample(Example) returns (Example);
+  rpc DeleteExample(google.protobuf.StringValue) returns (google.protobuf.Empty);
+}

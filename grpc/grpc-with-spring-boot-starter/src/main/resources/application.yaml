@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: grpc-with-spring-boot-starter
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
